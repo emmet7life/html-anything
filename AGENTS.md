@@ -22,3 +22,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - App build: `pnpm -F @html-anything/next build`
 - E2E typecheck: `pnpm -F @html-anything/e2e typecheck`
 - E2E tests: `pnpm -F @html-anything/e2e test`
+
+## Developer Documents
+
+- WSL to Windows browser CDP setup and troubleshooting is documented in `developer_documents/wsl-windows-browser-cdp.md`.
+- Use that document before changing `web-access` browser automation setup, Windows `portproxy` rules, or WSL-to-Windows DevTools connectivity.

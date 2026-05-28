@@ -1,0 +1,11 @@
+{
+  "name": "agent-mcp-skill-enterprise",
+  "version": "1.0.0",
+  "description": "Agent MCP Skill Plugin enterprise social cards",
+  "scripts": {
+    "render": "node render.cjs"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}

@@ -1,0 +1,306 @@
+<section class="slide accent" data-layout="SWISS-COVER-ASCII" data-animate="hero">
+  <div class="canvas-card">
+    <canvas class="ascii-bg" aria-hidden="true"></canvas>
+    <div class="chrome-min">
+      <div class="l">WSL NETWORKING · FIELD NOTE</div>
+      <div class="r">SWISS · 2026.05.28 · 01 / 08</div>
+    </div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:2.6vh">
+      <div data-anim="kicker" class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.22em">PROXY / TOOLING / WSL2</div>
+      <h1 data-anim="title" style="align-self:center;font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(10.8vw,18vh);line-height:.94;letter-spacing:-.025em;color:#fff">让 WSL<br/>稳定<span style="font-style:italic;font-weight:300">联网</span></h1>
+      <div data-anim="bottom" style="display:grid;grid-template-rows:auto auto;gap:1.6vh;border-top:1px solid rgba(255,255,255,.22);padding-top:2vh">
+        <div data-anim="lead" class="lead" style="max-width:56ch;color:rgba(255,255,255,.86)">Windows 上 Clash Verge 常开，不代表 WSL 里的 git、curl、npm、pip 自动稳定。真正可靠的方案，是显式建立一条可验证的代理链路。</div>
+        <div style="display:flex;justify-content:space-between;align-items:end">
+          <div class="t-meta" style="color:rgba(255,255,255,.6)">based on developer_documents/wsl-clash-network-tooling.md</div>
+          <div class="t-meta" style="color:rgba(255,255,255,.6)">→ arrow keys</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide dark" data-layout="S03" data-animate="statement">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">SYMPTOM</div>
+      <div class="r">02 / 08</div>
+    </div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:1.4vh">
+        <div class="t-meta">THE SIGNAL</div>
+        <h2 class="h-xl-zh" style="font-size:min(6.4vw,11.2vh);max-width:13ch">浏览器能打开，命令行却失败</h2>
+      </div>
+      <div data-anim="body" class="grid-12" style="align-self:center">
+        <div class="span-4 card-fill" style="padding:3vh 2vw;background:rgba(255,255,255,.08);color:var(--paper)">
+          <div class="t-meta">GIT</div>
+          <div style="font-size:max(18px,1.35vw);line-height:1.45;font-weight:500;margin-top:1.4vh">gnutls_handshake failed</div>
+          <p style="font-size:max(16px,.94vw);line-height:1.55;color:rgba(255,255,255,.66);font-weight:400;margin-top:1.2vh">TLS connection was non-properly terminated</p>
+        </div>
+        <div class="span-4 card-fill" style="padding:3vh 2vw;background:rgba(255,255,255,.08);color:var(--paper)">
+          <div class="t-meta">PYTHON</div>
+          <div style="font-size:max(18px,1.35vw);line-height:1.45;font-weight:500;margin-top:1.4vh">UNEXPECTED_EOF</div>
+          <p style="font-size:max(16px,.94vw);line-height:1.55;color:rgba(255,255,255,.66);font-weight:400;margin-top:1.2vh">GitHub zip / archive 下载中断</p>
+        </div>
+        <div class="span-4 card-accent" style="padding:3vh 2vw">
+          <div class="t-meta">PATTERN</div>
+          <div style="font-size:max(18px,1.35vw);line-height:1.45;font-weight:600;margin-top:1.4vh">不是网站不能访问</div>
+          <p style="font-size:max(16px,.94vw);line-height:1.55;font-weight:500;margin-top:1.2vh">是 WSL CLI 没有稳定走 Windows 代理。</p>
+        </div>
+      </div>
+      <div data-anim="foot" class="t-meta" style="color:rgba(255,255,255,.58)">OBSERVATION · GitHub direct path is unreliable in this environment.</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide grey" data-layout="S11" data-animate="duo-mirror">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">ROOT CAUSE</div>
+      <div class="r">03 / 08</div>
+    </div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:1.4vh">
+        <div class="t-meta">TWO NETWORK WORLDS</div>
+        <h2 class="h-xl-zh" style="font-size:min(5.8vw,10.2vh)">Windows 与 WSL 并不是同一个网络现场</h2>
+      </div>
+      <div class="duo-compare" data-anim="compare">
+        <div class="col">
+          <div class="col-tag"><span class="num">01</span><span>Windows</span></div>
+          <div class="col-ttl">Clash Verge 常开</div>
+          <div class="col-desc">浏览器、Windows 应用和部分 TUN 流量可以正常接管。</div>
+          <ul class="col-list">
+            <li>HTTP/Mixed Port 监听 7890 / 7897</li>
+            <li>规则模式决定流量出口</li>
+            <li>Allow LAN 决定 WSL 是否可连</li>
+          </ul>
+        </div>
+        <div class="vrule"></div>
+        <div class="col accent">
+          <div class="col-tag"><span class="num">02</span><span>WSL2</span></div>
+          <div class="col-ttl">CLI 工具独立运行</div>
+          <div class="col-desc">git、curl、pip、pnpm 不会自动继承 Windows 浏览器代理。</div>
+          <ul class="col-list">
+            <li>默认网关可能重启后变化</li>
+            <li>环境变量必须显式设置</li>
+            <li>排查时要区分代理与直连</li>
+          </ul>
+        </div>
+      </div>
+      <div data-anim="foot" class="t-meta" style="color:var(--text-helper)">DECISION · Treat WSL as a separate client, not a Windows browser tab.</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide light" data-layout="S17" data-animate="system-diagram">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">SYSTEM MAP</div>
+      <div class="r">04 / 08</div>
+    </div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:1.4vh">
+        <div class="t-meta">THE WORKING PATH</div>
+        <h2 class="h-xl-zh" style="font-size:min(5.8vw,10.2vh)">一条可验证的代理链路</h2>
+      </div>
+      <div data-anim="stage" style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:4vw;align-items:center">
+        <div style="position:relative;min-height:38vh">
+          <svg viewBox="0 0 800 360" style="width:100%;height:38vh;display:block" aria-hidden="true">
+            <circle cx="120" cy="180" r="72" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <circle cx="390" cy="180" r="88" fill="none" stroke="var(--accent)" stroke-width="5"/>
+            <circle cx="680" cy="180" r="72" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M192 180 H302" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M478 180 H608" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M270 156 l32 24 -32 24" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M576 156 l32 24 -32 24" fill="none" stroke="var(--ink)" stroke-width="2"/>
+          </svg>
+          <div style="position:absolute;left:4%;top:43%;transform:translateY(-50%);font-size:max(18px,1.2vw);font-weight:500">WSL CLI</div>
+          <div style="position:absolute;left:40%;top:43%;transform:translateY(-50%);font-size:max(18px,1.2vw);font-weight:600;color:var(--accent)">Clash</div>
+          <div style="position:absolute;right:3%;top:43%;transform:translateY(-50%);font-size:max(18px,1.2vw);font-weight:500">GitHub</div>
+          <div class="t-meta" style="position:absolute;left:29%;bottom:2vh;color:var(--text-helper)">HTTP_PROXY / HTTPS_PROXY / ALL_PROXY</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1.6vh">
+          <div class="card-fill" style="padding:2.4vh 2vw">
+            <div class="t-meta">01 · DISCOVER</div>
+            <div style="font-size:max(18px,1.3vw);font-weight:500;margin-top:1vh">动态读取 WSL 默认网关</div>
+          </div>
+          <div class="card-accent" style="padding:2.4vh 2vw">
+            <div class="t-meta">02 · ROUTE</div>
+            <div style="font-size:max(18px,1.3vw);font-weight:600;margin-top:1vh">指向 http://&lt;gateway&gt;:7890</div>
+          </div>
+          <div class="card-fill" style="padding:2.4vh 2vw">
+            <div class="t-meta">03 · VERIFY</div>
+            <div style="font-size:max(18px,1.3vw);font-weight:500;margin-top:1vh">用 curl -x 验证代理，不靠猜</div>
+          </div>
+        </div>
+      </div>
+      <div data-anim="foot" class="t-meta" style="color:var(--text-helper)">A working path must be observable at every hop.</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide accent" data-layout="S20" data-animate="tech-spec">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">CONFIG SPEC</div>
+      <div class="r">05 / 08</div>
+    </div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:1.4vh">
+        <div class="t-meta" style="color:rgba(255,255,255,.72)">SHELL RC</div>
+        <h2 class="h-xl-zh" style="font-size:min(5.8vw,10.2vh);color:#fff">把代理写成动态环境</h2>
+      </div>
+      <div data-anim="spec" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3vw;align-items:stretch">
+        <pre style="white-space:pre-wrap;font-family:var(--mono);font-size:max(16px,.92vw);line-height:1.6;font-weight:500;background:rgba(255,255,255,.12);color:#fff;padding:3vh 2vw;overflow:hidden">export WIN_HOST="$(ip route | awk '/^default/ {print $3; exit}')"
+export HTTP_PROXY="http://${WIN_HOST}:7890"
+export HTTPS_PROXY="$HTTP_PROXY"
+export ALL_PROXY="$HTTP_PROXY"</pre>
+        <div style="display:flex;flex-direction:column;gap:1.6vh">
+          <div style="border-top:1px solid rgba(255,255,255,.28);padding-top:2vh">
+            <div class="t-meta" style="color:rgba(255,255,255,.7)">WHY DYNAMIC</div>
+            <p style="font-size:max(18px,1.15vw);line-height:1.55;font-weight:500;color:rgba(255,255,255,.9);margin-top:1vh">WSL 默认网关会变，代理地址不能硬编码。</p>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,.28);padding-top:2vh">
+            <div class="t-meta" style="color:rgba(255,255,255,.7)">NO_PROXY</div>
+            <p style="font-size:max(18px,1.15vw);line-height:1.55;font-weight:500;color:rgba(255,255,255,.9);margin-top:1vh">本地、内网、WSL-to-Windows 直连服务要绕过代理。</p>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,.28);padding-top:2vh">
+            <div class="t-meta" style="color:rgba(255,255,255,.7)">SOURCE</div>
+            <p style="font-size:max(18px,1.15vw);line-height:1.55;font-weight:500;color:rgba(255,255,255,.9);margin-top:1vh">写进 ~/.bashrc 或 ~/.zshrc 后重新 source。</p>
+          </div>
+        </div>
+      </div>
+      <div data-anim="foot" class="t-meta" style="color:rgba(255,255,255,.66)">CONFIGURATION · one shell, many tools.</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide light" data-layout="S19" data-animate="four-cards">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">TOOL ADAPTERS</div>
+      <div class="r">06 / 08</div>
+    </div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:1.4vh">
+        <div class="t-meta">FOUR SURFACES</div>
+        <h2 class="h-xl-zh" style="font-size:min(5.8vw,10.2vh)">工具不同，入口相同</h2>
+      </div>
+      <div data-anim="cards" class="grid-12">
+        <div class="span-3 card-fill" style="padding:3vh 1.6vw;min-height:30vh">
+          <div class="t-meta">GIT</div>
+          <h3 style="font-size:max(18px,1.45vw);font-weight:500;line-height:1.2;margin-top:2vh">优先读取环境变量</h3>
+          <p style="font-size:max(16px,.94vw);line-height:1.6;color:var(--text-secondary);font-weight:400;margin-top:1.6vh">避免把 WSL 网关 IP 写进全局配置。</p>
+        </div>
+        <div class="span-3 card-accent" style="padding:3vh 1.6vw;min-height:30vh">
+          <div class="t-meta">CURL</div>
+          <h3 style="font-size:max(18px,1.45vw);font-weight:600;line-height:1.2;margin-top:2vh">用 -x 做显式验证</h3>
+          <p style="font-size:max(16px,.94vw);line-height:1.6;font-weight:500;margin-top:1.6vh">curl -I -x "$HTTP_PROXY" https://github.com</p>
+        </div>
+        <div class="span-3 card-fill" style="padding:3vh 1.6vw;min-height:30vh">
+          <div class="t-meta">NPM / PNPM</div>
+          <h3 style="font-size:max(18px,1.45vw);font-weight:500;line-height:1.2;margin-top:2vh">可持久配置</h3>
+          <p style="font-size:max(16px,.94vw);line-height:1.6;color:var(--text-secondary);font-weight:400;margin-top:1.6vh">proxy 与 https-proxy 指向同一动态入口。</p>
+        </div>
+        <div class="span-3 card-fill" style="padding:3vh 1.6vw;min-height:30vh">
+          <div class="t-meta">PIP / PYTHON</div>
+          <h3 style="font-size:max(18px,1.45vw);font-weight:500;line-height:1.2;margin-top:2vh">先靠环境变量</h3>
+          <p style="font-size:max(16px,.94vw);line-height:1.6;color:var(--text-secondary);font-weight:400;margin-top:1.6vh">必要时再写 ~/.config/pip/pip.conf。</p>
+        </div>
+      </div>
+      <div data-anim="foot" class="t-meta" style="color:var(--text-helper)">RULE · Configure once at the shell boundary, override only when diagnosing.</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide grey" data-layout="S02" data-animate="timeline-walk">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">DIAGNOSTIC FLOW</div>
+      <div class="r">07 / 08</div>
+    </div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:1.4vh">
+        <div class="t-meta">DO NOT GUESS</div>
+        <h2 class="h-xl-zh" style="font-size:min(5.8vw,10.2vh)">五步定位网络失败</h2>
+      </div>
+      <div class="timeline-h" data-anim="timeline" style="min-height:38vh">
+        <div class="tl-row">
+          <div class="th-node up">
+            <div class="dot"></div>
+            <div class="label"><div class="yr">01</div><div class="name">网关</div><div class="desc">ip route</div></div>
+          </div>
+          <div class="th-node down">
+            <div class="dot"></div>
+            <div class="label"><div class="yr">02</div><div class="name">端口</div><div class="desc">Get-NetTCPConnection</div></div>
+          </div>
+          <div class="th-node up accent">
+            <div class="dot"></div>
+            <div class="label"><div class="yr">03</div><div class="name">代理</div><div class="desc">curl -x</div></div>
+          </div>
+          <div class="th-node down">
+            <div class="dot"></div>
+            <div class="label"><div class="yr">04</div><div class="name">环境</div><div class="desc">env | grep proxy</div></div>
+          </div>
+          <div class="th-node up">
+            <div class="dot"></div>
+            <div class="label"><div class="yr">05</div><div class="name">工具</div><div class="desc">git ls-remote</div></div>
+          </div>
+        </div>
+      </div>
+      <div data-anim="foot" class="t-meta" style="color:var(--text-helper)">RESULT · every failure becomes one missing hop, not a mystery.</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide split" data-layout="SWISS-CLOSING-ASCII" data-animate="split-statement">
+  <div class="canvas-card">
+    <div class="split-half">
+      <div class="half b-accent" style="padding:5.6vh 3.6vw 4.4vh;justify-content:space-between;position:relative;overflow:hidden">
+        <canvas class="ascii-bg" aria-hidden="true"></canvas>
+        <div class="chrome-min" style="margin-bottom:0;position:relative;z-index:1">
+          <div class="l">08 / 08</div>
+          <div class="r">CLOSING</div>
+        </div>
+        <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:2vh;position:relative;z-index:1">
+          <div class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.22em;margin-bottom:1.6vh">OPERATING PRINCIPLE</div>
+          <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(7.6vw,13vh);line-height:.94;letter-spacing:-.025em;font-weight:200;color:#fff">先验证<br/>再<span style="font-style:italic;font-weight:300">配置</span></h2>
+          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,1vw);line-height:1.6;color:rgba(255,255,255,.82);font-weight:500;max-width:38ch;margin-top:1.4vh">把网络问题拆成可观察的链路，每个工具都只是同一条链路的不同入口。</div>
+        </div>
+        <div data-anim="signature" style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid rgba(255,255,255,.22);padding-top:2vh;position:relative;z-index:1">
+          <div class="t-meta" style="color:rgba(255,255,255,.62)">WSL + Clash Verge</div>
+          <div class="t-meta" style="color:rgba(255,255,255,.62)">2026.05.28</div>
+        </div>
+      </div>
+      <div class="half" style="padding:5.6vh 3.6vw 4.4vh;justify-content:space-between">
+        <div class="chrome-min">
+          <div class="l">TAKEAWAYS</div>
+          <div class="r">03 RULES</div>
+        </div>
+        <div data-anim="rules" style="display:flex;flex-direction:column;gap:0">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.6vh 0;border-top:1px solid var(--border-subtle)">
+            <div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.8vh);line-height:.9;color:var(--text-primary)">01</div>
+            <div>
+              <h3 style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(18px,1.8vw);line-height:1.2;letter-spacing:-.015em;color:var(--text-primary);margin-bottom:1vh">WSL 是独立客户端</h3>
+              <p style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.94vw);line-height:1.6;color:var(--text-secondary);font-weight:400">不要假设 Windows 浏览器能访问，WSL CLI 就能访问。</p>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.6vh 0;border-top:1px solid var(--border-subtle)">
+            <div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.8vh);line-height:.9;color:var(--text-primary)">02</div>
+            <div>
+              <h3 style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(18px,1.8vw);line-height:1.2;letter-spacing:-.015em;color:var(--text-primary);margin-bottom:1vh">代理地址动态生成</h3>
+              <p style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.94vw);line-height:1.6;color:var(--text-secondary);font-weight:400">用默认网关拼出 HTTP_PROXY，避免重启后失效。</p>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.6vh 0;border-top:1px solid var(--border-subtle);border-bottom:2px solid var(--accent)">
+            <div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.8vh);line-height:.9;color:var(--accent)">03</div>
+            <div>
+              <h3 style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(18px,1.8vw);line-height:1.2;letter-spacing:-.015em;color:var(--accent);margin-bottom:1vh">直连排查必须绕过代理</h3>
+              <p style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.94vw);line-height:1.6;color:var(--text-secondary);font-weight:400">`--noproxy '*'` 是区分服务问题和代理问题的关键。</p>
+            </div>
+          </div>
+        </div>
+        <div data-anim="foot" class="t-meta" style="color:var(--text-helper);text-align:right">→ END OF NETWORK NOTE</div>
+      </div>
+    </div>
+  </div>
+</section>
