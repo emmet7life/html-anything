@@ -235,3 +235,8 @@ body::before {
   border-radius: 16px;
   box-shadow: 0 1px 0 var(--line-faint), 0 18px 40px -28px rgba(21, 20, 15, 0.16);
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}

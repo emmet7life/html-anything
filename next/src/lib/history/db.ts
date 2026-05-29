@@ -40,6 +40,8 @@ export type RunRecord = {
   /** Template id at commit time — lets the history pane label entries even
    *  if the user has since switched templates on the task. */
   templateId?: string;
+  /** User-editable short note (max 60 chars). Empty / absent = none. */
+  note?: string;
 };
 
 interface HistoryDB extends DBSchema {
@@ -159,6 +161,24 @@ export async function deleteRun(taskId: string, version: number): Promise<void> 
     return;
   }
   await db.delete(STORE, makeId(taskId, version));
+}
+
+/** Update the user-editable note on a run record. No-op if the record doesn't exist. */
+export async function updateNote(taskId: string, version: number, note: string): Promise<void> {
+  let db: IDBPDatabase<HistoryDB>;
+  try {
+    db = await getDB();
+  } catch {
+    return;
+  }
+  const id = makeId(taskId, version);
+  const tx = db.transaction(STORE, "readwrite");
+  const record = await tx.store.get(id);
+  if (record) {
+    record.note = note.slice(0, 60).trim() || undefined;
+    await tx.store.put(record);
+  }
+  await tx.done;
 }
 
 /**

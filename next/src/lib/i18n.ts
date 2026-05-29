@@ -264,6 +264,14 @@ export interface Dict {
   "history.diff.pickPair": string;
   "history.diff.before": string;
   "history.diff.after": string;
+  "history.note.placeholder": string;
+  "history.restore.title": string;
+  "history.restore.cancel": string;
+  "history.restore.confirm": string;
+  "preview.version.prev": string;
+  "preview.version.next": string;
+  "preview.version.label": string;
+  "preview.version.toast": string;
 
   // Community / upstream link entry points
   "community.starOnGitHub": string;
@@ -630,6 +638,14 @@ const en: Dict = {
   "history.diff.pickPair": "Pick two versions to compare.",
   "history.diff.before": "Before",
   "history.diff.after": "After",
+  "history.note.placeholder": "Add a note…",
+  "history.restore.title": "Restore this version?",
+  "history.restore.cancel": "Cancel",
+  "history.restore.confirm": "Restore",
+  "preview.version.prev": "Previous version",
+  "preview.version.next": "Next version",
+  "preview.version.label": "v{n} / {total}",
+  "preview.version.toast": "Saved to version history · View",
 
   "community.starOnGitHub": "Star on GitHub",
   "community.joinDiscord": "Join Discord",
@@ -989,6 +1005,14 @@ const zhCN: Dict = {
   "history.diff.pickPair": "请选择两个要对比的版本。",
   "history.diff.before": "旧版本",
   "history.diff.after": "新版本",
+  "history.note.placeholder": "添加备注…",
+  "history.restore.title": "恢复此版本？",
+  "history.restore.cancel": "取消",
+  "history.restore.confirm": "恢复",
+  "preview.version.prev": "上一版本",
+  "preview.version.next": "下一版本",
+  "preview.version.label": "v{n} / {total}",
+  "preview.version.toast": "已保存至版本历史 · 查看",
 
   "community.starOnGitHub": "在 GitHub 上 Star",
   "community.joinDiscord": "加入 Discord",

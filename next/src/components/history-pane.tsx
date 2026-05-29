@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { diffLines, type ChangeObject } from "diff";
 import { selectActiveTask, useStore } from "@/lib/store";
 import {
   deleteRun,
   listRuns,
+  updateNote,
   MAX_VERSIONS_PER_TASK,
   type RunRecord,
 } from "@/lib/history/db";
@@ -40,6 +41,12 @@ export function HistoryPane() {
   const [leftId, setLeftId] = useState<string | null>(null);
   const [rightId, setRightId] = useState<string | null>(null);
   const [showSourceDiff, setShowSourceDiff] = useState(false);
+  // Custom restore modal — replaces the native confirm() with an iframe preview
+  const [restoreTarget, setRestoreTarget] = useState<RunRecord | null>(null);
+  const restoreSrcDoc = useMemo(
+    () => restoreTarget ? previewHtml(restoreTarget.html) : "",
+    [restoreTarget],
+  );
 
   // The persist middleware writes synchronously on every action, so we
   // refresh the list whenever the active task's html changes — that's our
@@ -83,21 +90,23 @@ export function HistoryPane() {
   };
 
   const onRestore = (record: RunRecord) => {
-    if (!activeTaskId) return;
-    if (!confirm(t("history.restoreConfirm", { v: record.version }))) return;
-    setHtmlFor(activeTaskId, record.html);
-    setContent(record.content);
-    setStatusFor(activeTaskId, "done");
-    // Snapshot the restored state as a new version so the user can roll
-    // forward again later; commitBaseFor also resets the diff-edit baseline.
-    commitBase(activeTaskId);
-    refresh();
+    setRestoreTarget(record);
   };
 
   const onDelete = async (record: RunRecord) => {
     if (!activeTaskId) return;
     if (!confirm(t("history.deleteConfirm", { v: record.version }))) return;
     await deleteRun(activeTaskId, record.version);
+    refresh();
+  };
+
+  const onConfirmRestore = () => {
+    if (!restoreTarget || !activeTaskId) return;
+    setHtmlFor(activeTaskId, restoreTarget.html);
+    setContent(restoreTarget.content);
+    setStatusFor(activeTaskId, "done");
+    commitBase(activeTaskId);
+    setRestoreTarget(null);
     refresh();
   };
 
@@ -172,6 +181,29 @@ export function HistoryPane() {
           onToggleSource={() => setShowSourceDiff((v) => !v)}
         />
       )}
+      {/* Restore confirmation modal with live preview */}
+      {restoreTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(10,10,10,0.55)", backdropFilter: "blur(2px)" }} onClick={() => setRestoreTarget(null)}>
+          <div className="relative flex flex-col rounded-2xl shadow-2xl" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)", width: "min(85vw, 800px)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--line-faint)" }}>
+              <h3 className="text-[16px] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)]">
+                {t("history.restore.title")}
+              </h3>
+              <p className="mt-1 text-[12px] text-[var(--ink-mute)]">v{restoreTarget.version} · {(restoreTarget.html.length / 1024).toFixed(1)} KB · {new Date(restoreTarget.ts).toLocaleString()}</p>
+              {restoreTarget.note && (
+                <p className="mt-1 text-[11px] text-[var(--ink-soft)] italic">“{restoreTarget.note}”</p>
+              )}
+            </div>
+            <div className="overflow-hidden" style={{ background: "#fff", height: "min(52vh, 440px)" }}>
+              <iframe srcDoc={restoreSrcDoc} sandbox="allow-same-origin" className="h-full w-full" style={{ border: 0, transform: "scale(0.65)", transformOrigin: "top left", width: "154%", height: "154%" }} title="restore preview" />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: "1px solid var(--line-faint)" }}>
+              <button onClick={() => setRestoreTarget(null)} className="rounded-full px-4 py-1.5 text-[12.5px] text-[var(--ink-mute)] hover:text-[var(--ink)] transition-colors">{t("history.restore.cancel")}</button>
+              <button onClick={onConfirmRestore} className="rounded-full px-4 py-1.5 text-[12.5px] font-medium text-white transition-colors" style={{ background: "var(--coral)", border: "1px solid rgba(255,255,255,0.18)" }}>{t("history.restore.confirm")}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
@@ -243,6 +275,11 @@ function HistoryCard({
 }) {
   const t = useT();
   const sizeKB = (run.html.length / 1024).toFixed(1);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(run.note ?? "");
+  const noteDraftRef = useRef(noteDraft);
+  noteDraftRef.current = noteDraft;
+  const noteOriginalRef = useRef(run.note ?? "");
   return (
     <div
       className="group relative mb-1.5 rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--surface)]"
@@ -275,6 +312,48 @@ function HistoryCard({
       <div className="mt-0.5 text-[10.5px] text-[var(--ink-faint)]" suppressHydrationWarning>
         {mounted ? relativeTime(run.ts) : ""}
       </div>
+      {editingNote ? (
+        <div className="mt-1.5 flex items-center gap-1">
+          <input
+            type="text"
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                updateNote(run.taskId, run.version, noteDraftRef.current);
+                setEditingNote(false);
+              }
+              if (e.key === "Escape") { setEditingNote(false); setNoteDraft(noteOriginalRef.current); }
+            }}
+            onBlur={() => {
+              updateNote(run.taskId, run.version, noteDraftRef.current);
+              setEditingNote(false);
+            }}
+            autoFocus
+            maxLength={60}
+            placeholder={t("history.note.placeholder")}
+            className="min-w-0 flex-1 rounded px-2 py-0.5 text-[10.5px] outline-none"
+            style={{ background: "var(--paper)", border: "1px solid var(--line)", color: "var(--ink)" }}
+          />
+          <button
+            onClick={() => { setEditingNote(false); setNoteDraft(noteOriginalRef.current); }}
+            className="text-[10px] text-[var(--ink-faint)] hover:text-[var(--ink)]"
+          >✕</button>
+        </div>
+      ) : (
+        <div className="mt-0.5 flex items-center gap-1 min-w-0">
+          {noteDraft || run.note ? (
+            <span className="text-[10.5px] text-[var(--ink-soft)] leading-snug italic truncate">{noteDraft || run.note}</span>
+          ) : (
+            <span className="text-[10.5px] text-[var(--ink-faint)] opacity-60">{t("history.note.placeholder")}</span>
+          )}
+          <button
+            onClick={() => { noteOriginalRef.current = noteDraftRef.current; setEditingNote(true); }}
+            className="shrink-0 rounded px-1 py-0.5 text-[9px] text-[var(--ink-faint)] hover:text-[var(--ink)] opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Edit note"
+          >✎</button>
+        </div>
+      )}
       <div className="mt-1.5 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={onCompare}

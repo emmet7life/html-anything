@@ -6,6 +6,7 @@ import { useT, type DictKey } from "@/lib/i18n";
 import { previewHtml, extractHtml } from "@/lib/extract-html";
 import { isDeck } from "@/lib/deck";
 import { DeckViewer } from "./deck-viewer";
+import { listRuns, type RunRecord } from "@/lib/history/db";
 
 type PreviewTab = "preview" | "deck" | "code" | "log";
 
@@ -88,7 +89,24 @@ export function PreviewPane({
   // HTML — useful when the streaming preview committed a partial render and the
   // final state didn't repaint, or when injected scripts/styles need to re-init.
   const [refreshKey, setRefreshKey] = useState(0);
+  // Version browsing
+  const [versionRuns, setVersionRuns] = useState<RunRecord[]>([]);
+  const [versionIndex, setVersionIndex] = useState<number | null>(null);
+  // Toast
+  const [toastVisible, setToastVisible] = useState(false);
   const refresh = useCallback(() => setRefreshKey((n) => n + 1), []);
+  const goPrevVersion = useCallback(() => {
+    if (versionRuns.length < 2) return;
+    const idx = versionIndex !== null ? versionIndex : versionRuns.length - 1;
+    const next = Math.min(idx + 1, versionRuns.length - 1);
+    setVersionIndex(next);
+  }, [versionIndex, versionRuns]);
+  const goNextVersion = useCallback(() => {
+    if (versionRuns.length < 2) return;
+    const idx = versionIndex !== null ? versionIndex : versionRuns.length - 1;
+    const next = Math.max(idx - 1, 0);
+    setVersionIndex(next);
+  }, [versionIndex, versionRuns]);
   const t = useT();
 
   // Browser-level fullscreen for the whole preview pane. The Deck tab has its
@@ -129,8 +147,12 @@ export function PreviewPane({
   // Effective html for this render = real task output if any, else the
   // template example fetched above. Downstream (deck detection, debounce,
   // iframe srcDoc) treats both identically — the only difference is provenance.
-  const effectiveHtml = html || templateExample;
-  const isPreviewingTemplate = !html && !!templateExample;
+  // Version browse override
+  const browseHtml = versionIndex !== null && versionRuns[versionIndex]
+    ? versionRuns[versionIndex].html
+    : null;
+  const effectiveHtml = browseHtml ?? (html || templateExample);
+  const isPreviewingTemplate = !browseHtml && !html && !!templateExample;
 
   // Detect deck off the cleaned (un-fenced) html — extract once for reuse.
   const cleaned = useMemo(() => extractHtml(effectiveHtml), [effectiveHtml]);
@@ -191,6 +213,20 @@ export function PreviewPane({
     }
     prevStatusRef.current = status;
   }, [status, tab, html]);
+
+  // Load version runs and show toast on convert completion
+  useEffect(() => {
+    if (!activeTaskId) return;
+    if (prevStatusRef.current === "running" && status === "done") {
+      listRuns(activeTaskId).then(setVersionRuns).catch(() => {});
+      setToastVisible(true);
+      setVersionIndex(null);
+      const timer = setTimeout(() => setToastVisible(false), 6000);
+      return () => clearTimeout(timer);
+    }
+    listRuns(activeTaskId).then(setVersionRuns).catch(() => {});
+    setVersionIndex(null);
+  }, [activeTaskId, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showMetrics = status !== "idle" || !!stats.startedAt;
 
@@ -262,6 +298,19 @@ export function PreviewPane({
                 </svg>
               </button>
             )}
+            {tab === "preview" && versionRuns.length >= 2 && (
+              <>
+                <button onClick={goPrevVersion} disabled={versionIndex !== null && versionIndex >= versionRuns.length - 1} className="grid h-[22px] w-[22px] place-items-center rounded-full disabled:opacity-30" style={{ background: "transparent", color: "var(--ink-soft)", border: "1px solid var(--line)" }} title={t("preview.version.prev")} aria-label={t("preview.version.prev")}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                </button>
+                <button onClick={goNextVersion} disabled={versionIndex !== null && versionIndex <= 0} className="grid h-[22px] w-[22px] place-items-center rounded-full disabled:opacity-30" style={{ background: "transparent", color: "var(--ink-soft)", border: "1px solid var(--line)" }} title={t("preview.version.next")} aria-label={t("preview.version.next")}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+                {versionIndex !== null && (
+                  <span className="text-[10px] tabular-nums text-[var(--ink-mute)] font-mono px-1">{t("preview.version.label", { n: versionRuns[versionIndex].version, total: versionRuns.length })}</span>
+                )}
+              </>
+            )}
             {canPresent && (
               <button
                 onClick={toggleFullscreen}
@@ -286,6 +335,14 @@ export function PreviewPane({
       <div className="relative flex-1 overflow-hidden">
         {tab === "preview" && (
           <>
+            {/* Convert-complete toast */}
+            {toastVisible && (
+              <div className="absolute left-1/2 top-3 z-40 -translate-x-1/2 rounded-full px-4 py-2 text-[12px] font-medium shadow-lg animate-[fadeIn_0.3s_ease]" style={{ background: "rgba(15,14,12,0.88)", color: "#f3efe6", backdropFilter: "blur(8px)" }}>
+                <span>{t("preview.version.toast")}</span>
+                <button onClick={() => { setToastVisible(false); useStore.getState().setHistoryPaneOpen(true); }} className="ml-2 underline underline-offset-2 hover:text-white transition-colors">→</button>
+                <button onClick={() => setToastVisible(false)} className="ml-2 text-white/50 hover:text-white/80 transition-colors">✕</button>
+              </div>
+            )}
             {!effectiveHtml && <PreviewPlaceholder status={status} />}
             {effectiveHtml && (
               <>
