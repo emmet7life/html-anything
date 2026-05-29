@@ -3,6 +3,27 @@
 import type { DeckSlide } from "@/lib/deck";
 import { iframeToBlob, downloadBlob } from "./image";
 
+type PptxGenConstructor = new () => {
+  layout: string;
+  addSlide: () => {
+    addImage: (opts: {
+      data: string;
+      x: number;
+      y: number;
+      w: string;
+      h: string;
+    }) => void;
+    addNotes: (notes: string) => void;
+  };
+  writeFile: (opts: { fileName: string }) => Promise<string>;
+};
+
+declare global {
+  interface Window {
+    PptxGenJS?: PptxGenConstructor;
+  }
+}
+
 /**
  * Render every slide off-screen one at a time and snapshot it. We re-use the
  * existing `iframeToBlob` helper (which already handles fonts / images /
@@ -83,7 +104,7 @@ export async function exportDeckPptx(
   onProgress?: (i: number, total: number) => void,
 ): Promise<void> {
   if (slides.length === 0) throw new Error("no slides");
-  const { default: PptxGenJS } = await import("pptxgenjs");
+  const PptxGenJS = await loadBrowserPptxGenJS();
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE"; // 13.333 × 7.5 inches → 16:9
   for (let i = 0; i < slides.length; i++) {
@@ -95,6 +116,34 @@ export async function exportDeckPptx(
     if (slides[i].notes) s.addNotes(slides[i].notes);
   }
   await pptx.writeFile({ fileName: `${basename}-${Date.now()}.pptx` });
+}
+
+async function loadBrowserPptxGenJS(): Promise<PptxGenConstructor> {
+  if (window.PptxGenJS) return window.PptxGenJS;
+
+  await new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-vendor="pptxgenjs"]',
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("failed to load pptx exporter")), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "/api/vendor/pptxgenjs";
+    script.async = true;
+    script.dataset.vendor = "pptxgenjs";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("failed to load pptx exporter"));
+    document.head.appendChild(script);
+  });
+
+  if (!window.PptxGenJS) throw new Error("pptx exporter unavailable");
+  return window.PptxGenJS;
 }
 
 /**

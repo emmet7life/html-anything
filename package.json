@@ -8,6 +8,7 @@
     "tsx": "^4.22.1"
   },
   "dependencies": {
-    "playwright": "^1.60.0"
+    "playwright": "^1.60.0",
+    "pnpm": "^10.34.1"
   }
 }

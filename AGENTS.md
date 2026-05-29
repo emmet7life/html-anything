@@ -25,5 +25,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Developer Documents
 
+- 「生成HTML」按钮执行链路见 `developer_documents/convert-button-flow.md`，覆盖从前端点击、SSE 通信、Agent 子进程调用到实时渲染的完整数据流。
+- 项目结构概览见 `developer_documents/project-structure.md`，包含完整的目录树、组件清单、模块职责和架构约束。
 - WSL to Windows browser CDP setup and troubleshooting is documented in `developer_documents/wsl-windows-browser-cdp.md`.
 - Use that document before changing `web-access` browser automation setup, Windows `portproxy` rules, or WSL-to-Windows DevTools connectivity.

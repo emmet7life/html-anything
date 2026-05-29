@@ -88,7 +88,8 @@ export function DeckViewer({ html, active, onMainIframe, onSlides }: Props) {
     );
   }
 
-  const current = slides[index];
+  const safeIndex = Math.min(index, slides.length - 1);
+  const current = slides[safeIndex];
 
   return (
     <div
@@ -113,7 +114,7 @@ export function DeckViewer({ html, active, onMainIframe, onSlides }: Props) {
           <>
             <button
               onClick={prev}
-              disabled={index === 0}
+              disabled={safeIndex === 0}
               aria-label={t("deck.prev")}
               className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full text-[18px] disabled:opacity-30 transition-opacity"
               style={{
@@ -127,7 +128,7 @@ export function DeckViewer({ html, active, onMainIframe, onSlides }: Props) {
             </button>
             <button
               onClick={next}
-              disabled={index === slides.length - 1}
+              disabled={safeIndex === slides.length - 1}
               aria-label={t("deck.next")}
               className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full text-[18px] disabled:opacity-30 transition-opacity"
               style={{
@@ -189,7 +190,7 @@ export function DeckViewer({ html, active, onMainIframe, onSlides }: Props) {
             fontFamily: "var(--font-mono)",
           }}
         >
-          {index + 1} / {slides.length}
+          {safeIndex + 1} / {slides.length}
         </div>
 
         {/* speaker notes overlay */}
@@ -208,7 +209,7 @@ export function DeckViewer({ html, active, onMainIframe, onSlides }: Props) {
               className="mb-2 text-[10px] uppercase tracking-[0.18em]"
               style={{ color: isFullscreen ? "rgba(255,255,255,0.55)" : "var(--ink-faint)" }}
             >
-              {t("deck.notes")} · {t("deck.slideN", { n: index + 1, m: slides.length })}
+              {t("deck.notes")} · {t("deck.slideN", { n: safeIndex + 1, m: slides.length })}
             </div>
             <p className="whitespace-pre-wrap">{current.notes}</p>
           </div>
@@ -219,7 +220,7 @@ export function DeckViewer({ html, active, onMainIframe, onSlides }: Props) {
       {!isFullscreen && (
         <ThumbStrip
           slides={slides}
-          activeIndex={index}
+          activeIndex={safeIndex}
           onPick={setIndex}
         />
       )}
