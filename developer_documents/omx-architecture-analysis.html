@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OMX Architecture Analysis - html-anything</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5e6b7a;
+      --line: #d8dee8;
+      --line-soft: #edf1f6;
+      --paper: #f7f9fc;
+      --panel: #ffffff;
+      --primary: #1d6f7a;
+      --primary-soft: #e4f4f5;
+      --accent: #a9472b;
+      --accent-soft: #fff0ea;
+      --code: #273142;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, "SF Pro Display", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.65;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 48px 28px 64px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 32px;
+      align-items: end;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 66px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .meta {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .meta strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 36px;
+      margin-top: 36px;
+    }
+
+    nav {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    nav a {
+      display: block;
+      padding: 7px 0;
+      color: var(--muted);
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    section {
+      margin-bottom: 42px;
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      font-size: 27px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      margin: 26px 0 12px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .num {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--primary);
+      color: #f7fbfc;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--line-soft);
+      color: var(--code);
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 16px 0;
+      padding: 18px;
+      border-radius: 8px;
+      background: #17202a;
+      color: #eef5f7;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line-soft);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--primary);
+      background: var(--primary-soft);
+      font-weight: 800;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .callout {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent-soft);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    ul {
+      margin: 0 0 16px 20px;
+      padding: 0;
+    }
+
+    li {
+      margin: 7px 0;
+    }
+
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      header,
+      main,
+      .grid,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <p class="eyebrow">OMX Architecture Analysis</p>
+        <h1>html-anything 架构分析</h1>
+        <p class="subtitle">
+          本文基于仓库源码与 <code>developer_documents/</code> 现有资料，梳理 monorepo 边界、
+          Next.js 应用分层、HTML 生成链路、Agent CLI 适配、状态存储和测试约束。
+        </p>
+      </div>
+      <aside class="meta">
+        <strong>生成信息</strong>
+        路径：<code>developer_documents/omx-architecture-analysis.html</code><br />
+        范围：本地仓库静态分析<br />
+        重点：架构边界、执行链路、风险与改进建议
+      </aside>
+    </header>
+
+    <main>
+      <nav aria-label="目录">
+        <a href="#summary">1. 总览</a>
+        <a href="#workspace">2. Workspace 边界</a>
+        <a href="#app">3. Next 应用结构</a>
+        <a href="#flow">4. 生成 HTML 链路</a>
+        <a href="#agents">5. Agent 适配层</a>
+        <a href="#state">6. 状态与存储</a>
+        <a href="#extensions">7. 扩展模块</a>
+        <a href="#testing">8. 测试与守卫</a>
+        <a href="#risks">9. 风险与建议</a>
+      </nav>
+
+      <article>
+        <section id="summary">
+          <h2>1. 总览</h2>
+          <p>
+            <code>html-anything</code> 是一个以 Next.js 16 + React 19 为主应用的 pnpm monorepo。
+            核心产品形态是「输入任意内容 → 选择模板与 Agent → 流式生成单文件 HTML → 预览、导出、部署、保存历史」。
+          </p>
+          <div class="grid">
+            <div class="card">
+              <span class="badge">Product</span>
+              <h3>内容到 HTML</h3>
+              <p>支持 Markdown、CSV、PPTX、图片等输入，经模板 prompt 与 AI Agent 生成可预览的单文件 HTML。</p>
+            </div>
+            <div class="card">
+              <span class="badge">Runtime</span>
+              <h3>本地 Agent 编排</h3>
+              <p>后端 API 不直接调用云模型 SDK，而是 spawn 本地 CLI，例如 Claude Code、Codex、Gemini、OpenClaw。</p>
+            </div>
+            <div class="card">
+              <span class="badge">Persistence</span>
+              <h3>浏览器侧持久化</h3>
+              <p>Zustand + localStorage 保存当前任务，IndexedDB 保存历史版本，生成 HTML 不通过临时文件落盘。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="workspace">
+          <h2>2. Workspace 边界</h2>
+          <p>
+            顶层目录是公共 harness 边界，只保留 workspace 元数据、CI、结构守卫和文档。
+            业务源码集中在 <code>next/</code>，浏览器级测试集中在 <code>e2e/</code>。
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>路径</th>
+                <th>职责</th>
+                <th>约束</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>/</code></td>
+                <td>pnpm workspace、CI、结构守卫、开发文档</td>
+                <td>根 <code>package.json</code> 不代理子包脚本，不承载应用源码。</td>
+              </tr>
+              <tr>
+                <td><code>next/</code></td>
+                <td>完整 Next 应用，包括 App Router、组件、lib、public、单元测试</td>
+                <td>业务逻辑、API 路由、Vitest 测试都在此边界内。</td>
+              </tr>
+              <tr>
+                <td><code>e2e/</code></td>
+                <td>Playwright 端到端测试</td>
+                <td>浏览器测试不能放到 <code>next/</code>，用例集中在 <code>e2e/ui/</code>。</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code>pnpm-workspace.yaml
+  packages:
+    - next
+    - e2e
+
+常用命令:
+  pnpm exec tsx scripts/guard.ts
+  pnpm -F @html-anything/next typecheck
+  pnpm -F @html-anything/next test
+  pnpm -F @html-anything/e2e test</code></pre>
+        </section>
+
+        <section id="app">
+          <h2>3. Next 应用结构</h2>
+          <p>
+            <code>next/src/app/page.tsx</code> 是单页工作台 shell。它组合工具栏、任务侧栏、历史面板、编辑区、
+            预览区、欢迎/设置弹窗和浮动生成按钮，并在客户端挂载后检测本机可用 Agent。
+          </p>
+          <div class="two-col">
+            <div class="card">
+              <h3>界面层</h3>
+              <ul>
+                <li><code>Toolbar</code>：Agent 选择、导出、部署、设置入口。</li>
+                <li><code>EditorPane</code>：输入内容与格式编辑。</li>
+                <li><code>PreviewPane</code>：iframe 实时渲染生成 HTML。</li>
+                <li><code>ConvertChip</code>：生成/取消入口，与快捷键共享同一逻辑。</li>
+                <li><code>TasksSidebar</code>、<code>HistoryPane</code>：多任务和版本历史。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>服务层</h3>
+              <ul>
+                <li><code>app/api/convert</code>：模板加载、prompt 组装、SSE 转发。</li>
+                <li><code>app/api/agents</code>：本地 Agent 检测。</li>
+                <li><code>app/api/deploy</code>：部署配置与发布流程。</li>
+                <li><code>app/api/templates</code>、<code>marketplace</code>：模板和技能市场。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="flow">
+          <h2>4. 生成 HTML 链路</h2>
+          <p>
+            生成链路是本项目最核心的数据流：前端触发任务、客户端预处理输入、服务端组装 prompt、
+            本地 Agent CLI 流式输出，最后由前端将 SSE 事件写回 store 并刷新预览。
+          </p>
+          <div class="flow">
+            <div class="step">
+              <div class="num">1</div>
+              <div>
+                <strong><code>ConvertChip</code> 触发</strong>
+                <p>点击按钮或使用快捷键，调用 <code>useConvert().run(taskId, agent, templateId, content, format, model)</code>。</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">2</div>
+              <div>
+                <strong><code>use-convert.ts</code> 客户端编排</strong>
+                <p>初始化运行状态，内联 <code>asset:&lt;id&gt;</code> 资源，调用 <code>summarizeForAgent()</code> 识别格式，并判断是否进入 diff-edit 模式。</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">3</div>
+              <div>
+                <strong><code>POST /api/convert</code></strong>
+                <p>服务端通过 <code>loadSkill()</code> 加载模板，使用 <code>assemblePrompt()</code> 或 <code>buildEditPrompt()</code> 生成最终 prompt。</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">4</div>
+              <div>
+                <strong><code>invokeAgent()</code> spawn 本地 CLI</strong>
+                <p>解析二进制路径、构建 argv、写入 stdin 或命令行参数，并将 stdout/stderr 转换成结构化事件。</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">5</div>
+              <div>
+                <strong>SSE 回传并实时渲染</strong>
+                <p>前端处理 <code>start</code>、<code>delta</code>、<code>html</code>、<code>meta</code>、<code>done</code>、<code>error</code> 事件，持续更新任务 HTML 与日志。</p>
+              </div>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>关键设计：</strong>
+            diff-edit 模式把前一版 <code>baseHtml</code> 和 <code>baseContent</code> 一起发送给服务端，要求 Agent 只做最小内容差异修改，
+            避免每次重新生成导致视觉系统漂移，同时降低输出 token 成本。
+          </div>
+        </section>
+
+        <section id="agents">
+          <h2>5. Agent 适配层</h2>
+          <p>
+            Agent 层由 <code>next/src/lib/agents/</code> 承担，拆成检测、argv 构建、子进程调用和输出解析。
+            这让 UI 可以统一面对不同 CLI，同时把每个 Agent 的协议差异封装在边界内。
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>模块</th>
+                <th>职责</th>
+                <th>架构意义</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>detect.ts</code></td>
+                <td>声明 Agent 列表、协议、fallback model、PATH 搜索规则</td>
+                <td>前端设置页和后端调用共享同一 Agent 事实来源。</td>
+              </tr>
+              <tr>
+                <td><code>argv.ts</code></td>
+                <td>按协议构建命令行参数、环境变量和输出 parser</td>
+                <td>把 stdin、argv、argv-message、检测型协议差异集中处理。</td>
+              </tr>
+              <tr>
+                <td><code>invoke.ts</code></td>
+                <td>解析最终 binary，spawn 子进程，输出 <code>ReadableStream&lt;InvokeEvent&gt;</code></td>
+                <td>服务端 API 不依赖具体 Agent SDK，降低外部 SDK 耦合。</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            当前支持的协议包括 <code>stdin</code>、<code>argv</code>、<code>argv-message</code>，并对 <code>acp</code>、
+            <code>pi-rpc</code> 做检测型展示。对用户显式设置的 binary override，代码选择「错误即报错」而不是悄悄回退，
+            这是合理的可观测性设计。
+          </p>
+        </section>
+
+        <section id="state">
+          <h2>6. 状态与存储</h2>
+          <p>
+            应用状态由 <code>next/src/lib/store.ts</code> 管理，使用 Zustand + persist 保存多任务、活跃任务、Agent 设置、
+            模型选择、布局、语言和欢迎状态。生成历史由 IndexedDB 模块负责，和当前任务状态分层保存。
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>数据</th>
+                <th>位置</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>当前任务与 HTML</td>
+                <td>Zustand + localStorage</td>
+                <td><code>Task.html</code> 随 SSE 事件更新，支持多任务并发流式写入。</td>
+              </tr>
+              <tr>
+                <td>版本历史</td>
+                <td>IndexedDB</td>
+                <td><code>history/db.ts</code> 保存每个任务的历史版本，并做保留数量控制。</td>
+              </tr>
+              <tr>
+                <td>部署记录</td>
+                <td>任务内 ring buffer</td>
+                <td>保存 provider、URL、HTML hash、状态和部署时间，便于识别线上版本。</td>
+              </tr>
+              <tr>
+                <td>上传资源</td>
+                <td>任务 assets map</td>
+                <td>编辑区只保留 <code>asset:&lt;id&gt;</code> 占位符，提交给 Agent 前恢复为 data URL。</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="extensions">
+          <h2>7. 扩展模块</h2>
+          <div class="grid">
+            <div class="card">
+              <h3>模板系统</h3>
+              <p><code>templates/</code> 和 <code>skills/</code> 提供内置模板、技能注册、安装和预览 API。共享设计指令集中在 <code>templates/shared.ts</code>。</p>
+            </div>
+            <div class="card">
+              <h3>导出系统</h3>
+              <p><code>export/</code> 覆盖下载、剪贴板、图片、Markdown 往返、deck、微信、知乎、Bilibili、Mastodon、Bluesky、Notion 等目标。</p>
+            </div>
+            <div class="card">
+              <h3>部署系统</h3>
+              <p><code>deploy/</code> 封装 Vercel 配置、发布与 URL 可达性检测，UI 侧由 <code>DeployControl</code> 触发。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="testing">
+          <h2>8. 测试与守卫</h2>
+          <p>
+            仓库采用结构守卫 + 应用单元测试 + 独立 e2e 测试的三层验证。
+            <code>scripts/guard.ts</code> 是边界约束的自动化表达，CI 也按同样顺序执行 workspace guard、typecheck、unit test、build 和 Playwright。
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>层级</th>
+                <th>命令</th>
+                <th>验证内容</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>结构守卫</td>
+                <td><code>pnpm exec tsx scripts/guard.ts</code></td>
+                <td>目录归属、脚本边界、CI 关键命令和测试位置约束。</td>
+              </tr>
+              <tr>
+                <td>Next 类型检查</td>
+                <td><code>pnpm -F @html-anything/next typecheck</code></td>
+                <td>应用源码 TypeScript 类型正确性。</td>
+              </tr>
+              <tr>
+                <td>Next 单元测试</td>
+                <td><code>pnpm -F @html-anything/next test</code></td>
+                <td>HTML 提取、历史 DB、技能、模板、deck viewer 等模块。</td>
+              </tr>
+              <tr>
+                <td>E2E</td>
+                <td><code>pnpm -F @html-anything/e2e test</code></td>
+                <td>浏览器级用户流程，例如导出菜单与部署控件。</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="risks">
+          <h2>9. 风险与建议</h2>
+          <div class="two-col">
+            <div class="card">
+              <h3>主要风险</h3>
+              <ul>
+                <li>Agent CLI 协议持续变化，parser 和 argv 适配需要高回归覆盖。</li>
+                <li>生成 HTML 全量放入 localStorage 可能遇到容量上限，长文档和多任务会放大风险。</li>
+                <li>SSE 流式解析与任务切换并发相关，容易出现取消、后台任务、预览刷新之间的边界问题。</li>
+                <li>模板 prompt 体量和共享指令复杂度高，变更会影响所有生成质量。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>改进建议</h3>
+              <ul>
+                <li>为 Agent parser 增加每个 CLI 的 fixture 回归测试，覆盖 stdout、stderr、tool-use 恢复 HTML。</li>
+                <li>把大 HTML 的持久化从 localStorage 迁到 IndexedDB，仅在 store 中保留活跃摘要和当前版本 id。</li>
+                <li>为 convert SSE 协议补一份稳定事件契约文档，约束前后端字段演进。</li>
+                <li>建立 <code>omx_wiki/</code> 持久项目知识库，沉淀架构、生成链路、状态存储、Agent 集成和测试约束。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>本次 OMX 工具链问题：</strong>
+            原始 <code>omx explore</code> 报错不是项目架构问题，而是 macOS developer directory 指向不兼容的
+            <code>/Applications/Xcode.app/Contents/Developer</code>。用
+            <code>DEVELOPER_DIR=/Library/Developer/CommandLineTools</code> 后，<code>xcrun</code>、<code>clang</code>、
+            <code>cc</code> 均恢复可用，<code>omx explore</code> 也能继续执行。
+          </div>
+        </section>
+
+        <footer>
+          参考文件：<code>developer_documents/project-structure.md</code>、
+          <code>developer_documents/convert-button-flow.md</code>、
+          <code>next/src/app/page.tsx</code>、<code>next/src/app/api/convert/route.ts</code>、
+          <code>next/src/lib/use-convert.ts</code>、<code>next/src/lib/agents/</code>、
+          <code>next/src/lib/store.ts</code>、<code>scripts/guard.ts</code>。
+        </footer>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

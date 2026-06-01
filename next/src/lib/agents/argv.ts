@@ -49,14 +49,19 @@ export function buildArgv(agent: string, _opts: AgentArgvOpts = {}): string[] {
         ...(model ? ["--model", model] : []),
       ];
     case "codex":
+      // html-anything supplies its own prompt contract. Letting Codex inherit
+      // the user's coding-agent runtime can load MCP servers, hooks, and
+      // AGENTS.md rules that are unrelated to HTML generation and can emit
+      // noisy stderr or steer the model away from direct HTML output.
       return [
         "exec",
         "--json",
+        "--ignore-user-config",
+        "--ignore-rules",
+        "--ephemeral",
         "--skip-git-repo-check",
         "--sandbox",
-        "workspace-write",
-        "-c",
-        "sandbox_workspace_write.network_access=true",
+        "read-only",
         ...(model ? ["--model", model] : []),
       ];
     case "cursor-agent":
