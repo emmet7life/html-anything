@@ -127,6 +127,8 @@ next/src/lib/templates/skills/<id>/
 
 运行时会把用户技能用 `pkg-<owner>__<repo>--<original-id>` 命名空间合并进同一模板注册表，避免与内置模板冲突。测试可用 `HTML_ANYTHING_USER_SKILLS_DIR` 改写用户技能目录。
 
+> 机制层详解（为什么这里叫 "skill" 却不是 agent skill、marketplace 怎么从 GitHub 装到本机、安全模型与大小限制、如何基于本原理做自己的模板）见 `developer_documents/templates-skills-and-marketplace.md`。
+
 ## 状态、存储与转换数据流
 
 - 轻量工作台状态由 `store.ts` 使用 Zustand persist 存入 localStorage，包括任务列表、active task、agent/model 选择、布局、欢迎状态和每个任务最近 5 条部署记录。
